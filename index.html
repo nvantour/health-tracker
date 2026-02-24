@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Health Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Sync status indicator -->
+        <div class="sync-status" id="syncStatus">
+            <span class="sync-icon" id="syncIcon">☁️</span>
+        </div>
+
+        <!-- Progress + Date header -->
+        <header class="header">
+            <div class="date-heading" id="dateHeading"></div>
+            <div class="motivation-text" id="motivationText"></div>
+            <div class="progress-ring-container">
+                <svg class="progress-ring" width="80" height="80" viewBox="0 0 80 80">
+                    <circle class="progress-ring-bg" cx="40" cy="40" r="34" fill="none" stroke="#E8E0DC" stroke-width="6"/>
+                    <circle class="progress-ring-fill" id="progressRingFill" cx="40" cy="40" r="34" fill="none" stroke="#B794D6" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" transform="rotate(-90 40 40)"/>
+                </svg>
+                <span class="progress-ring-text" id="progressRingText">0/4</span>
+            </div>
+        </header>
+
+        <!-- Checklist cards -->
+        <section class="checklist" id="checklist">
+            <!-- Cards rendered by JS -->
+        </section>
+
+        <!-- Completion message -->
+        <div class="completion-message" id="completionMessage" hidden>
+            <span class="completion-text">✨ Perfecte dag! ✨</span>
+        </div>
+
+        <!-- Perfect day streak -->
+        <section class="perfect-streak" id="perfectStreakSection">
+            <div class="perfect-streak-badge">
+                <span class="perfect-streak-emoji">⭐</span>
+                <span class="perfect-streak-number" id="perfectStreakNumber">0</span>
+            </div>
+            <div class="perfect-streak-label">perfecte dagen op rij</div>
+        </section>
+
+        <!-- Cheat tokens overview -->
+        <section class="tokens-overview" id="tokensOverview">
+            <h3 class="tokens-overview-title">🛡️ Cheat Tokens</h3>
+            <div class="tokens-grid" id="tokensGrid">
+                <!-- Token cards rendered by JS -->
+            </div>
+        </section>
+
+        <!-- Calendar -->
+        <section class="calendar-section" id="calendarSection">
+            <div class="calendar-nav">
+                <button class="calendar-nav-btn" id="prevMonth" aria-label="Vorige maand">
+                    <span class="nav-btn-front">←</span>
+                </button>
+                <span class="calendar-title" id="calendarTitle"></span>
+                <button class="calendar-nav-btn" id="nextMonth" aria-label="Volgende maand">
+                    <span class="nav-btn-front">→</span>
+                </button>
+            </div>
+            <div class="calendar-weekdays">
+                <span>Ma</span><span>Di</span><span>Wo</span><span>Do</span><span>Vr</span><span>Za</span><span>Zo</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- Day cells rendered by JS -->
+            </div>
+
+            <!-- Inline day detail panel (iPhone calendar style) -->
+            <div class="day-detail-panel" id="dayDetailPanel" hidden>
+                <div class="day-detail-header">
+                    <h3 class="day-detail-title" id="dayDetailTitle"></h3>
+                    <span class="day-detail-badge" id="dayDetailBadge"></span>
+                </div>
+                <div class="day-detail-items" id="dayDetailItems">
+                    <!-- Items rendered by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Token use confirmation modal -->
+        <dialog class="token-modal" id="tokenModal">
+            <div class="modal-content">
+                <div class="token-modal-icon">🛡️</div>
+                <h3 class="modal-title" id="tokenModalTitle"></h3>
+                <p class="token-modal-desc" id="tokenModalDesc"></p>
+                <div class="token-modal-shields" id="tokenModalShields"></div>
+                <div class="token-modal-actions">
+                    <button class="token-btn-cancel" id="tokenCancel">
+                        Bewaar token
+                    </button>
+                    <button class="token-btn-use" id="tokenUse">
+                        <span class="btn-front">Gebruik token</span>
+                    </button>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- Confetti container -->
+        <div class="confetti-container" id="confettiContainer"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
