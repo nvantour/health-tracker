@@ -36,9 +36,21 @@ function initFirebase() {
         firebase.auth().signInAnonymously().then(() => {
             firebaseReady = true;
             setSyncStatus('synced');
-            listenToFirebase();
-            // Push local data to Firebase on first connect
-            syncToFirebase(appData);
+
+            // First fetch Firebase data, then start listener
+            firebaseRef.once('value').then((snapshot) => {
+                const firebaseDays = snapshot.val();
+                if (firebaseDays && Object.keys(firebaseDays).length > 0) {
+                    // Firebase has data — use it as truth
+                    appData.days = firebaseDays;
+                    saveDataLocal(appData);
+                    renderAll();
+                } else if (Object.keys(appData.days).length > 0) {
+                    // Firebase is empty but we have local data — push it
+                    syncToFirebase(appData);
+                }
+                listenToFirebase();
+            });
         }).catch((err) => {
             console.warn('Firebase auth failed:', err);
             setSyncStatus('offline');
