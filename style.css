@@ -17,12 +17,14 @@
     --breakfast-border: #FFE5B4;
     --lunch-border: #C1E1C1;
     --dinner-border: #C4D7FF;
+    --shake-border: #D4C5A9;
 
     /* Category colors - background (lighter) */
     --snack-bg: #FFF0F3;
     --breakfast-bg: #FFF8EC;
     --lunch-bg: #F0F8F0;
     --dinner-bg: #F0F4FF;
+    --shake-bg: #FAF6F0;
 
     /* Category colors - darker (for 3D button shadow) */
     --snack-dark: #E8A8B8;
@@ -168,6 +170,10 @@ body {
 .card[data-category="dinnerHealthy"] {
     border-left-color: var(--dinner-border);
     background: var(--dinner-bg);
+}
+.card[data-category="proteinShake"] {
+    border-left-color: var(--shake-border);
+    background: var(--shake-bg);
 }
 
 .card-main {

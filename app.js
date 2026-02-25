@@ -4,7 +4,10 @@ const CATEGORIES = [
     { key: 'breakfastHealthy', label: 'Gezond ontbijt',  emoji: '🌅' },
     { key: 'lunchHealthy',     label: 'Gezonde lunch',   emoji: '🥗' },
     { key: 'dinnerHealthy',    label: 'Gezond diner',    emoji: '🍽️' },
+    { key: 'proteinShake',     label: 'Eiwitshake',      emoji: '🥛', trackStreak: false },
 ];
+
+const STREAK_CATEGORIES = CATEGORIES.filter(c => c.trackStreak !== false);
 
 const STORAGE_KEY = 'healthTracker';
 const TOKEN_INTERVAL = 5; // earn a token every 5 days of streak
@@ -192,12 +195,12 @@ function isCategoryValid(dayData, catKey) {
 
 function isDayPerfect(dayData) {
     if (!dayData) return false;
-    return CATEGORIES.every(cat => isCategoryValid(dayData, cat.key));
+    return STREAK_CATEGORIES.every(cat => isCategoryValid(dayData, cat.key));
 }
 
 function getDayScore(dayData) {
     if (!dayData) return 0;
-    return CATEGORIES.filter(cat => isCategoryValid(dayData, cat.key)).length;
+    return STREAK_CATEGORIES.filter(cat => isCategoryValid(dayData, cat.key)).length;
 }
 
 function dayHasTokenUsed(dayData) {
@@ -292,7 +295,7 @@ function getMotivationText(data) {
     const totalDays = Object.keys(data.days).length;
 
     if (totalDays === 0) return 'Begin je eerste streak! 💪';
-    if (score === 4) {
+    if (score === STREAK_CATEGORIES.length) {
         if (perfectStreak >= 7) return `Wauw, ${perfectStreak} dagen! Ongelooflijk! 🏆`;
         if (perfectStreak >= 3) return 'Je bent on fire! 🔥';
         return 'Perfecte dag! Goed bezig! 🎉';
@@ -316,13 +319,14 @@ function renderProgressRing() {
     const score = getDayScore(dayData);
 
     const circumference = 2 * Math.PI * 34;
-    const offset = circumference - (score / 4) * circumference;
+    const total = STREAK_CATEGORIES.length;
+    const offset = circumference - (score / total) * circumference;
 
     const fill = document.getElementById('progressRingFill');
     const text = document.getElementById('progressRingText');
 
     fill.style.strokeDashoffset = offset;
-    text.textContent = `${score}/4`;
+    text.textContent = `${score}/${total}`;
 }
 
 // ===== RENDER: HEADER =====
@@ -341,13 +345,26 @@ function renderChecklist() {
 
     for (const cat of CATEGORIES) {
         const isChecked = dayData && dayData[cat.key] && dayData[cat.key].checked;
-        const streak = calculateCategoryStreak(appData, cat.key);
-        const tokens = calculateTokens(appData, cat.key);
+        const hasStreak = cat.trackStreak !== false;
         const isExpanded = expandedCard === cat.key;
 
         const card = document.createElement('div');
         card.className = `card${isExpanded ? ' expanded' : ''}`;
         card.dataset.category = cat.key;
+
+        let detailsHtml = '';
+        if (hasStreak) {
+            const streak = calculateCategoryStreak(appData, cat.key);
+            const tokens = calculateTokens(appData, cat.key);
+            detailsHtml = `
+                <div class="card-details">
+                    <div class="card-detail-row">
+                        <span class="detail-streak">🔥 ${streak} ${streak === 1 ? 'dag' : 'dagen'}</span>
+                        <span class="detail-tokens">🛡️ ${tokens.available} beschikbaar</span>
+                    </div>
+                </div>
+            `;
+        }
 
         card.innerHTML = `
             <div class="card-main">
@@ -361,16 +378,12 @@ function renderChecklist() {
                     </span>
                 </button>
             </div>
-            <div class="card-details">
-                <div class="card-detail-row">
-                    <span class="detail-streak">🔥 ${streak} ${streak === 1 ? 'dag' : 'dagen'}</span>
-                    <span class="detail-tokens">🛡️ ${tokens.available} beschikbaar</span>
-                </div>
-            </div>
+            ${detailsHtml}
         `;
 
         card.querySelector('.card-main').addEventListener('click', (e) => {
             if (e.target.closest('.check-btn')) return;
+            if (!hasStreak) return;
             expandedCard = expandedCard === cat.key ? null : cat.key;
             renderChecklist();
         });
@@ -468,7 +481,7 @@ function renderTokensOverview() {
     const grid = document.getElementById('tokensGrid');
     grid.innerHTML = '';
 
-    for (const cat of CATEGORIES) {
+    for (const cat of STREAK_CATEGORIES) {
         const tokens = calculateTokens(appData, cat.key);
 
         const card = document.createElement('div');
@@ -594,7 +607,7 @@ function renderDayDetailPanel() {
         badge.textContent = '⭐ Perfecte dag!';
         badge.className = 'day-detail-badge';
     } else if (score > 0) {
-        badge.textContent = `${score}/4`;
+        badge.textContent = `${score}/${STREAK_CATEGORIES.length}`;
         badge.className = 'day-detail-badge';
     } else {
         badge.textContent = '';
@@ -606,8 +619,8 @@ function renderDayDetailPanel() {
     for (const cat of CATEGORIES) {
         const catData = dayData && dayData[cat.key];
         const isChecked = catData && catData.checked;
-        const isTokenUsed = catData && catData.tokenUsed;
-        const tokens = calculateTokens(appData, cat.key);
+        const hasStreak = cat.trackStreak !== false;
+        const isTokenUsed = hasStreak && catData && catData.tokenUsed;
 
         let statusClass = 'item-unchecked';
         let statusIcon = '—';
@@ -631,8 +644,11 @@ function renderDayDetailPanel() {
             actionsHtml += `<button class="day-detail-action-btn" data-action="check" data-cat="${cat.key}" data-date="${dateKey}">Aanvinken</button>`;
         }
 
-        if (!isChecked && !isTokenUsed && tokens.available > 0) {
-            actionsHtml += `<button class="day-detail-token-btn" data-action="token" data-cat="${cat.key}" data-date="${dateKey}">🛡️</button>`;
+        if (hasStreak && !isChecked && !isTokenUsed) {
+            const tokens = calculateTokens(appData, cat.key);
+            if (tokens.available > 0) {
+                actionsHtml += `<button class="day-detail-token-btn" data-action="token" data-cat="${cat.key}" data-date="${dateKey}">🛡️</button>`;
+            }
         }
 
         if (isTokenUsed) {
