@@ -181,7 +181,9 @@ function getDayData(data, dateKey) {
 function ensureDayExists(data, dateKey) {
     if (!data.days[dateKey]) {
         data.days[dateKey] = {};
-        for (const cat of CATEGORIES) {
+    }
+    for (const cat of CATEGORIES) {
+        if (!data.days[dateKey][cat.key]) {
             data.days[dateKey][cat.key] = { checked: false, tokenUsed: false };
         }
     }
