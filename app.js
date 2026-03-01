@@ -355,9 +355,11 @@ function renderChecklist() {
         card.dataset.category = cat.key;
 
         let detailsHtml = '';
+        let streakBadgeHtml = '';
         if (hasStreak) {
             const streak = calculateCategoryStreak(appData, cat.key);
             const tokens = calculateTokens(appData, cat.key);
+            streakBadgeHtml = `<span class="card-streak-badge">🔥 ${streak}</span>`;
             detailsHtml = `
                 <div class="card-details">
                     <div class="card-detail-row">
@@ -372,6 +374,7 @@ function renderChecklist() {
             <div class="card-main">
                 <span class="card-emoji">${cat.emoji}</span>
                 <span class="card-label">${cat.label}</span>
+                ${streakBadgeHtml}
                 <button class="check-btn${isChecked ? ' checked' : ''}" data-cat="${cat.key}" aria-label="${cat.label} afvinken">
                     <span class="check-btn-front">
                         <svg class="checkmark-svg" viewBox="0 0 24 24">
