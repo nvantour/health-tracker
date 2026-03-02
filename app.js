@@ -272,6 +272,36 @@ function calculateTokens(data, catKey) {
     };
 }
 
+// Tokens available for a specific date (for retroactive use on past days)
+// Calculates streak leading UP TO that date, not from today
+function calculateTokensForDay(data, catKey, dateKey) {
+    let streak = 0;
+    let walkDate = addDays(dateKey, -1);
+
+    while (isCategoryValid(getDayData(data, walkDate), catKey)) {
+        streak++;
+        walkDate = addDays(walkDate, -1);
+    }
+
+    const earned = Math.floor(streak / TOKEN_INTERVAL);
+
+    let used = 0;
+    walkDate = addDays(dateKey, -1);
+    for (let i = 0; i < streak; i++) {
+        const dayData = getDayData(data, walkDate);
+        if (dayData && dayData[catKey] && dayData[catKey].tokenUsed) {
+            used++;
+        }
+        walkDate = addDays(walkDate, -1);
+    }
+
+    return {
+        earned,
+        used,
+        available: Math.max(0, earned - used)
+    };
+}
+
 // ===== DATE FORMATTING =====
 const MONTHS_NL = [
     'januari', 'februari', 'maart', 'april', 'mei', 'juni',
@@ -359,7 +389,7 @@ function renderChecklist() {
         let tokenBtnHtml = '';
         if (hasStreak) {
             const streak = calculateCategoryStreak(appData, cat.key);
-            const tokens = calculateTokens(appData, cat.key);
+            const tokens = calculateTokensForDay(appData, cat.key, todayKey);
             streakBadgeHtml = `<span class="card-streak-badge">🔥 ${streak}</span>`;
             if (!isChecked && tokens.available > 0) {
                 tokenBtnHtml = `<button class="card-token-btn" data-cat="${cat.key}" aria-label="Cheat token gebruiken">🛡️</button>`;
@@ -662,7 +692,7 @@ function renderDayDetailPanel() {
         }
 
         if (hasStreak && !isChecked && !isTokenUsed) {
-            const tokens = calculateTokens(appData, cat.key);
+            const tokens = calculateTokensForDay(appData, cat.key, dateKey);
             if (tokens.available > 0) {
                 actionsHtml += `<button class="day-detail-token-btn" data-action="token" data-cat="${cat.key}" data-date="${dateKey}">🛡️</button>`;
             }
