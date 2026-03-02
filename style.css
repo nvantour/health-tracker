@@ -203,9 +203,25 @@ body {
 .card-streak-badge {
     font-size: 13px;
     font-weight: 700;
-    color: var(--text-muted);
     flex-shrink: 0;
     color: var(--text);
+}
+
+.card-token-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #F0C040;
+    background: #FFFBEB;
+    font-size: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s ease;
+}
+
+.card-token-btn:active {
+    transform: scale(0.9);
 }
 
 /* 3D Checkbox button */

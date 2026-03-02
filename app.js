@@ -356,10 +356,14 @@ function renderChecklist() {
 
         let detailsHtml = '';
         let streakBadgeHtml = '';
+        let tokenBtnHtml = '';
         if (hasStreak) {
             const streak = calculateCategoryStreak(appData, cat.key);
             const tokens = calculateTokens(appData, cat.key);
             streakBadgeHtml = `<span class="card-streak-badge">🔥 ${streak}</span>`;
+            if (!isChecked && tokens.available > 0) {
+                tokenBtnHtml = `<button class="card-token-btn" data-cat="${cat.key}" aria-label="Cheat token gebruiken">🛡️</button>`;
+            }
             detailsHtml = `
                 <div class="card-details">
                     <div class="card-detail-row">
@@ -375,6 +379,7 @@ function renderChecklist() {
                 <span class="card-emoji">${cat.emoji}</span>
                 <span class="card-label">${cat.label}</span>
                 ${streakBadgeHtml}
+                ${tokenBtnHtml}
                 <button class="check-btn${isChecked ? ' checked' : ''}" data-cat="${cat.key}" aria-label="${cat.label} afvinken">
                     <span class="check-btn-front">
                         <svg class="checkmark-svg" viewBox="0 0 24 24">
@@ -387,11 +392,18 @@ function renderChecklist() {
         `;
 
         card.querySelector('.card-main').addEventListener('click', (e) => {
-            if (e.target.closest('.check-btn')) return;
+            if (e.target.closest('.check-btn') || e.target.closest('.card-token-btn')) return;
             if (!hasStreak) return;
             expandedCard = expandedCard === cat.key ? null : cat.key;
             renderChecklist();
         });
+
+        const cardTokenBtn = card.querySelector('.card-token-btn');
+        if (cardTokenBtn) {
+            cardTokenBtn.addEventListener('click', () => {
+                openTokenModal(todayKey, cat.key);
+            });
+        }
 
         card.querySelector('.check-btn').addEventListener('click', () => {
             toggleCheck(cat.key);
