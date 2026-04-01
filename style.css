@@ -18,6 +18,8 @@
     --lunch-border: #C1E1C1;
     --dinner-border: #C4D7FF;
     --shake-border: #D4C5A9;
+    --massage-border: #F0C4A8;
+    --stretch-border: #A8D8C4;
 
     /* Category colors - background (lighter) */
     --snack-bg: #FFF0F3;
@@ -25,6 +27,8 @@
     --lunch-bg: #F0F8F0;
     --dinner-bg: #F0F4FF;
     --shake-bg: #FAF6F0;
+    --massage-bg: #FFF5EE;
+    --stretch-bg: #F0FAF5;
 
     /* Category colors - darker (for 3D button shadow) */
     --snack-dark: #E8A8B8;
@@ -175,6 +179,14 @@ body {
     border-left-color: var(--shake-border);
     background: var(--shake-bg);
 }
+.card[data-category="armMassage"] {
+    border-left-color: var(--massage-border);
+    background: var(--massage-bg);
+}
+.card[data-category="stretching"] {
+    border-left-color: var(--stretch-border);
+    background: var(--stretch-bg);
+}
 
 .card-main {
     display: flex;
@@ -224,6 +236,27 @@ body {
     transform: scale(0.9);
 }
 
+/* Multi-check dots */
+.card-count-dots {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.count-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2.5px solid var(--border-light);
+    background: transparent;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.count-dot.filled {
+    background: var(--check);
+    border-color: var(--check);
+}
+
 /* 3D Checkbox button */
 .check-btn {
     width: 44px;
@@ -265,6 +298,16 @@ body {
 .check-btn.checked .check-btn-front {
     background: var(--check);
     border-color: var(--check);
+}
+
+/* Partial check state (multi-check 1/2) */
+.check-btn.partial {
+    background: #D4B87A;
+}
+
+.check-btn.partial .check-btn-front {
+    background: #FFE5B4;
+    border-color: #FFE5B4;
 }
 
 /* SVG checkmark */
@@ -693,6 +736,26 @@ body {
     background: #FFF8E1;
 }
 
+.day-detail-item.item-partial {
+    background: #FFF8EC;
+}
+
+/* Detail dots for multi-check items */
+.day-detail-item-status .detail-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--border-light);
+    background: transparent;
+    margin-right: 2px;
+}
+
+.day-detail-item-status .detail-dot.filled {
+    background: var(--check);
+    border-color: var(--check);
+}
+
 .day-detail-item-left {
     display: flex;
     align-items: center;
@@ -931,6 +994,126 @@ dialog::backdrop {
 
 .calendar-day.shake {
     animation: shake 0.4s ease;
+}
+
+/* ===== STATS DASHBOARD ===== */
+.stats-section {
+    margin-bottom: 24px;
+}
+
+.stats-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.stat-card-highlight {
+    background: var(--perfect);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-card);
+}
+
+.stat-highlight-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.stat-highlight-number {
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--perfect-dark);
+    line-height: 1;
+}
+
+.stat-highlight-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--perfect-dark);
+    opacity: 0.8;
+}
+
+.stat-bar {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.stat-bar-fill {
+    height: 100%;
+    background: var(--perfect-strong);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.stat-pct {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--perfect-dark);
+    opacity: 0.7;
+    margin-top: 6px;
+}
+
+.stat-cat-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-cat-card {
+    background: var(--card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 4px solid var(--border-light);
+}
+
+.stat-cat-card[data-category="noSnack"] { border-left-color: var(--snack-border); }
+.stat-cat-card[data-category="breakfastHealthy"] { border-left-color: var(--breakfast-border); }
+.stat-cat-card[data-category="lunchHealthy"] { border-left-color: var(--lunch-border); }
+.stat-cat-card[data-category="dinnerHealthy"] { border-left-color: var(--dinner-border); }
+
+.stat-cat-emoji {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.stat-cat-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-cat-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.stat-cat-card .stat-bar {
+    margin-bottom: 2px;
+}
+
+.stat-cat-card .stat-bar-fill {
+    background: var(--perfect-strong);
+}
+
+.stat-cat-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
 }
 
 /* ===== RESPONSIVE ===== */

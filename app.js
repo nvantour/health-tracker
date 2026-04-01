@@ -1,16 +1,19 @@
 // ===== CONFIGURATION =====
 const CATEGORIES = [
     { key: 'noSnack',          label: 'Niet gesnoept',   emoji: '🍪' },
-    { key: 'breakfastHealthy', label: 'Gezond ontbijt',  emoji: '🌅' },
-    { key: 'lunchHealthy',     label: 'Gezonde lunch',   emoji: '🥗' },
-    { key: 'dinnerHealthy',    label: 'Gezond diner',    emoji: '🍽️' },
+    { key: 'breakfastHealthy', label: 'Gezond ontbijt',  emoji: '🌅', tokenInterval: 7 },
+    { key: 'lunchHealthy',     label: 'Gezonde lunch',   emoji: '🥗', tokenInterval: 7 },
+    { key: 'dinnerHealthy',    label: 'Gezond diner',    emoji: '🍽️', tokenInterval: 7 },
     { key: 'proteinShake',     label: 'Eiwitshake',      emoji: '🥛', trackStreak: false },
+    { key: 'armMassage',       label: 'Arm masseren',    emoji: '💪', trackStreak: false, maxChecks: 2 },
+    { key: 'stretching',       label: 'Stretchen',       emoji: '🧘', trackStreak: false },
 ];
 
 const STREAK_CATEGORIES = CATEGORIES.filter(c => c.trackStreak !== false);
 
 const STORAGE_KEY = 'healthTracker';
-const TOKEN_INTERVAL = 5; // earn a token every 5 days of streak
+const TOKEN_INTERVAL = 5; // default token interval (noSnack)
+const START_DATE = '2026-02-22'; // start tracking date
 
 // ===== FIREBASE CONFIG =====
 const firebaseConfig = {
@@ -184,7 +187,11 @@ function ensureDayExists(data, dateKey) {
     }
     for (const cat of CATEGORIES) {
         if (!data.days[dateKey][cat.key]) {
-            data.days[dateKey][cat.key] = { checked: false, tokenUsed: false };
+            if (cat.maxChecks && cat.maxChecks > 1) {
+                data.days[dateKey][cat.key] = { count: 0 };
+            } else {
+                data.days[dateKey][cat.key] = { checked: false, tokenUsed: false };
+            }
         }
     }
     return data.days[dateKey];
@@ -251,8 +258,10 @@ function calculatePerfectStreak(data) {
 
 // ===== TOKEN CALCULATION =====
 function calculateTokens(data, catKey) {
+    const cat = CATEGORIES.find(c => c.key === catKey);
+    const interval = (cat && cat.tokenInterval) || TOKEN_INTERVAL;
     const streak = calculateCategoryStreak(data, catKey);
-    const earned = Math.floor(streak / TOKEN_INTERVAL);
+    const earned = Math.floor(streak / interval);
 
     let used = 0;
     let dateKey = getTodayKey();
@@ -275,6 +284,8 @@ function calculateTokens(data, catKey) {
 // Tokens available for a specific date (for retroactive use on past days)
 // Calculates streak leading UP TO that date, not from today
 function calculateTokensForDay(data, catKey, dateKey) {
+    const cat = CATEGORIES.find(c => c.key === catKey);
+    const interval = (cat && cat.tokenInterval) || TOKEN_INTERVAL;
     let streak = 0;
     let walkDate = addDays(dateKey, -1);
 
@@ -283,7 +294,7 @@ function calculateTokensForDay(data, catKey, dateKey) {
         walkDate = addDays(walkDate, -1);
     }
 
-    const earned = Math.floor(streak / TOKEN_INTERVAL);
+    const earned = Math.floor(streak / interval);
 
     let used = 0;
     walkDate = addDays(dateKey, -1);
@@ -376,7 +387,10 @@ function renderChecklist() {
     container.innerHTML = '';
 
     for (const cat of CATEGORIES) {
-        const isChecked = dayData && dayData[cat.key] && dayData[cat.key].checked;
+        const isMultiCheck = cat.maxChecks && cat.maxChecks > 1;
+        const multiCount = isMultiCheck && dayData && dayData[cat.key] ? (dayData[cat.key].count || 0) : 0;
+        const isChecked = isMultiCheck ? multiCount >= cat.maxChecks : (dayData && dayData[cat.key] && dayData[cat.key].checked);
+        const isPartial = isMultiCheck && multiCount > 0 && multiCount < cat.maxChecks;
         const hasStreak = cat.trackStreak !== false;
         const isExpanded = expandedCard === cat.key;
 
@@ -404,13 +418,23 @@ function renderChecklist() {
             `;
         }
 
+        let countBadgeHtml = '';
+        if (isMultiCheck) {
+            let dots = '';
+            for (let i = 0; i < cat.maxChecks; i++) {
+                dots += `<span class="count-dot${i < multiCount ? ' filled' : ''}"></span>`;
+            }
+            countBadgeHtml = `<span class="card-count-dots">${dots}</span>`;
+        }
+
         card.innerHTML = `
             <div class="card-main">
                 <span class="card-emoji">${cat.emoji}</span>
                 <span class="card-label">${cat.label}</span>
                 ${streakBadgeHtml}
+                ${countBadgeHtml}
                 ${tokenBtnHtml}
-                <button class="check-btn${isChecked ? ' checked' : ''}" data-cat="${cat.key}" aria-label="${cat.label} afvinken">
+                <button class="check-btn${isChecked ? ' checked' : (isPartial ? ' partial' : '')}" data-cat="${cat.key}" aria-label="${cat.label} afvinken">
                     <span class="check-btn-front">
                         <svg class="checkmark-svg" viewBox="0 0 24 24">
                             <path class="checkmark-path" d="M5 13l4 4L19 7"/>
@@ -447,6 +471,16 @@ function renderChecklist() {
 function toggleCheck(catKey) {
     const todayKey = getTodayKey();
     const day = ensureDayExists(appData, todayKey);
+    const cat = CATEGORIES.find(c => c.key === catKey);
+
+    // Multi-check categories: cycle count 0 → 1 → 2 → 0
+    if (cat.maxChecks && cat.maxChecks > 1) {
+        const current = day[catKey].count || 0;
+        day[catKey].count = current >= cat.maxChecks ? 0 : current + 1;
+        saveData(appData);
+        renderAll();
+        return;
+    }
 
     const wasComplete = isDayPerfect(day);
     day[catKey].checked = !day[catKey].checked;
@@ -665,14 +699,27 @@ function renderDayDetailPanel() {
 
     for (const cat of CATEGORIES) {
         const catData = dayData && dayData[cat.key];
-        const isChecked = catData && catData.checked;
+        const isMultiCheck = cat.maxChecks && cat.maxChecks > 1;
+        const multiCount = isMultiCheck && catData ? (catData.count || 0) : 0;
+        const isChecked = isMultiCheck ? multiCount >= cat.maxChecks : (catData && catData.checked);
         const hasStreak = cat.trackStreak !== false;
         const isTokenUsed = hasStreak && catData && catData.tokenUsed;
 
         let statusClass = 'item-unchecked';
         let statusIcon = '—';
 
-        if (isTokenUsed) {
+        if (isMultiCheck) {
+            let dots = '';
+            for (let i = 0; i < cat.maxChecks; i++) {
+                dots += `<span class="detail-dot${i < multiCount ? ' filled' : ''}"></span>`;
+            }
+            statusIcon = dots;
+            if (multiCount >= cat.maxChecks) {
+                statusClass = 'item-checked';
+            } else if (multiCount > 0) {
+                statusClass = 'item-partial';
+            }
+        } else if (isTokenUsed) {
             statusClass = 'item-token';
             statusIcon = '🛡️';
         } else if (isChecked) {
@@ -685,7 +732,14 @@ function renderDayDetailPanel() {
 
         let actionsHtml = '';
 
-        if (isChecked) {
+        if (isMultiCheck) {
+            if (multiCount < cat.maxChecks) {
+                actionsHtml += `<button class="day-detail-action-btn" data-action="increment" data-cat="${cat.key}" data-date="${dateKey}">+1</button>`;
+            }
+            if (multiCount > 0) {
+                actionsHtml += `<button class="day-detail-action-btn" data-action="decrement" data-cat="${cat.key}" data-date="${dateKey}">-1</button>`;
+            }
+        } else if (isChecked) {
             actionsHtml += `<button class="day-detail-action-btn" data-action="uncheck" data-cat="${cat.key}" data-date="${dateKey}">Uitvinken</button>`;
         } else if (!isTokenUsed) {
             actionsHtml += `<button class="day-detail-action-btn" data-action="check" data-cat="${cat.key}" data-date="${dateKey}">Aanvinken</button>`;
@@ -761,6 +815,12 @@ function handleDayDetailAction(action, dateKey, catKey) {
         case 'remove-token':
             day[catKey].tokenUsed = false;
             break;
+        case 'increment':
+            day[catKey].count = (day[catKey].count || 0) + 1;
+            break;
+        case 'decrement':
+            day[catKey].count = Math.max(0, (day[catKey].count || 0) - 1);
+            break;
     }
 
     saveData(appData);
@@ -814,6 +874,71 @@ function setupTokenModal() {
     });
 }
 
+// ===== RENDER: DASHBOARD =====
+function renderDashboard() {
+    const container = document.getElementById('statsContent');
+    container.innerHTML = '';
+
+    const todayKey = getTodayKey();
+    const startDate = parseDate(START_DATE);
+    const today = parseDate(todayKey);
+    const totalDays = Math.max(1, Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1);
+
+    // Count perfect days and per-category successes
+    let perfectCount = 0;
+    const catCounts = {};
+    for (const cat of STREAK_CATEGORIES) {
+        catCounts[cat.key] = 0;
+    }
+
+    let dateKey = START_DATE;
+    while (dateKey <= todayKey) {
+        const dayData = getDayData(appData, dateKey);
+        if (isDayPerfect(dayData)) perfectCount++;
+        for (const cat of STREAK_CATEGORIES) {
+            if (isCategoryValid(dayData, cat.key)) catCounts[cat.key]++;
+        }
+        dateKey = addDays(dateKey, 1);
+    }
+
+    // Perfect days highlight card
+    const perfectPct = Math.round((perfectCount / totalDays) * 100);
+    const perfectCard = document.createElement('div');
+    perfectCard.className = 'stat-card stat-card-highlight';
+    perfectCard.innerHTML = `
+        <div class="stat-highlight-top">
+            <span class="stat-highlight-number">${perfectCount}</span>
+            <span class="stat-highlight-label">perfecte dagen</span>
+        </div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width: ${perfectPct}%"></div></div>
+        <span class="stat-pct">${perfectPct}% van ${totalDays} dagen</span>
+    `;
+    container.appendChild(perfectCard);
+
+    // Per-category cards
+    const catGrid = document.createElement('div');
+    catGrid.className = 'stat-cat-grid';
+
+    for (const cat of STREAK_CATEGORIES) {
+        const count = catCounts[cat.key];
+        const pct = Math.round((count / totalDays) * 100);
+        const card = document.createElement('div');
+        card.className = 'stat-cat-card';
+        card.dataset.category = cat.key;
+        card.innerHTML = `
+            <span class="stat-cat-emoji">${cat.emoji}</span>
+            <div class="stat-cat-info">
+                <span class="stat-cat-name">${cat.label}</span>
+                <div class="stat-bar"><div class="stat-bar-fill" style="width: ${pct}%"></div></div>
+                <span class="stat-cat-count">${count}/${totalDays} (${pct}%)</span>
+            </div>
+        `;
+        catGrid.appendChild(card);
+    }
+
+    container.appendChild(catGrid);
+}
+
 // ===== RENDER ALL =====
 function renderAll() {
     renderHeader();
@@ -821,6 +946,7 @@ function renderAll() {
     renderChecklist();
     renderPerfectStreak();
     renderTokensOverview();
+    renderDashboard();
     renderCalendar();
 }
 
